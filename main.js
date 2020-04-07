@@ -11,10 +11,7 @@ Apify.main(async () => {
     // a list of URLs to crawl. Here we use just a few hard-coded URLs.
     const requestList = new Apify.RequestList({
         sources: [
-            { url: 'http://www.google.com/' },
-            { url: 'http://www.example.com/' },
-            { url: 'http://www.bing.com/' },
-            { url: 'http://www.wikipedia.com/' },
+            { url: 'https://koronavirusinfo.az/az/page/statistika/azerbaycanda-cari-veziyyet' },
         ],
     });
     await requestList.initialize();
@@ -40,27 +37,38 @@ Apify.main(async () => {
         // This function will be called for each URL to crawl.
         // It accepts a single parameter, which is an object with the following fields:
         // - request: an instance of the Request class with information such as URL and HTTP method
-        // - html: contains raw HTML of the page
+        // - body: contains body of the page
         // - $: the cheerio object containing parsed HTML
-        handlePageFunction: async ({ request, html, $ }) => {
+        handlePageFunction: async ({ request, body, $ }) => {
             console.log(`Processing ${request.url}...`);
 
             // Extract data from the page using cheerio.
-            const title = $('title').text();
-            const h1texts = [];
-            $('h1').each((index, el) => {
-                h1texts.push({
-                    text: $(el).text(),
-                });
+            const DATA = {};
+            $('.gray_little_statistic').each((index, el) => {
+                switch ($(el).children('span').text()) {
+                    case 'Virusa yoluxan':
+                        DATA['infected'] = parseInt($(el).children('strong').text());
+                        break;
+                    case 'Sağalan':
+                        DATA['recovered'] = parseInt($(el).children('strong').text());
+                        break;
+                    case 'Ölüm halı':
+                        DATA['deceased'] = parseInt($(el).children('strong').text());
+                        break;
+                    case 'Müayinə aparılıb':
+                        DATA['tested'] = parseInt($(el).children('strong').text().replace(',', ''));
+                        break;
+                }
             });
 
             // Store the results to the default dataset. In local configuration,
             // the data will be stored as JSON files in ./apify_storage/datasets/default
             await Apify.pushData({
-                url: request.url,
-                title,
-                h1texts,
-                html,
+                country: 'Azerbaijan',
+                ...DATA,
+                sourceUrl: request.url,
+                lastUpdatedAtApify: new Date(new Date().toUTCString()).toISOString(),
+                lastUpdatedAtSource: "N/A" // currently unavailable
             });
         },
 
