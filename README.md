@@ -1,15 +1,9 @@
-# My beautiful actor
+# Coronavirus stats in Azerbaijan
 
-The `README.md` file contains a documentation what your actor does and how to use it,
-which is then displayed in the app or Apify Store. It's always a good
-idea to write a good `README.md`, in a few months not even you
-will remember all the details about the actor.
+Actor gets an actual number of infected, recovered, deceased and tested people in Azerbaijan from https://koronavirusinfo.az/az/page/statistika/azerbaycanda-cari-veziyyet
 
-You can use [Markdown](https://www.markdownguide.org/cheat-sheet)
-language for rich formatting.
+Latest data are available at this URL: N/A
 
-## Documentation reference
+You can find a dataset with unique history items here N/A
 
-- [Apify SDK](https://sdk.apify.com/)
-- [Apify Actor documentation](https://docs.apify.com/actor)
-- [Apify CLI](https://docs.apify.com/cli)
+URL is being actualized every 5 minutes.
