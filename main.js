@@ -5,6 +5,8 @@ const Apify = require('apify');
 const { log } = Apify.utils;
 log.setLevel(log.LEVELS.WARNING);
 
+const LATEST = 'LATEST';
+
 // Apify.main() function wraps the crawler logic (it is optional).
 Apify.main(async () => {
     // Create and initialize an instance of the RequestList class that contains
@@ -14,6 +16,10 @@ Apify.main(async () => {
             { url: 'https://koronavirusinfo.az/az/page/statistika/azerbaycanda-cari-veziyyet' },
         ],
     });
+
+    const kvStore = await Apify.openKeyValueStore('COVID-19-AZERBAIJAN');
+    const dataset = await Apify.openDataset('COVID-19-AZERBAIJAN-HISTORY');
+
     await requestList.initialize();
 
     // Create an instance of the CheerioCrawler class - a crawler
@@ -43,7 +49,7 @@ Apify.main(async () => {
             console.log(`Processing ${request.url}...`);
 
             // Extract data from the page using cheerio.
-            const DATA = {};
+            let DATA = {};
             $('.gray_little_statistic').each((index, el) => {
                 switch ($(el).children('span').text()) {
                     case 'Virusa yoluxan':
@@ -60,16 +66,32 @@ Apify.main(async () => {
                         break;
                 }
             });
-
-            // Store the results to the default dataset. In local configuration,
-            // the data will be stored as JSON files in ./apify_storage/datasets/default
-            await Apify.pushData({
+            DATA = {
                 country: 'Azerbaijan',
                 ...DATA,
                 sourceUrl: request.url,
                 lastUpdatedAtApify: new Date(new Date().toUTCString()).toISOString(),
                 lastUpdatedAtSource: "N/A" // currently unavailable
-            });
+            }
+
+            // Compare and save to history
+            const latest = await kvStore.getValue(LATEST) || {};
+            delete latest.lastUpdatedAtApify;
+
+            const actual = Object.assign({}, DATA);
+            delete actual.lastUpdatedAtApify;
+
+            // Store the results to the default dataset. In local configuration,
+            // the data will be stored as JSON files in ./apify_storage/datasets/default
+            await Apify.pushData({...DATA});
+
+            if (JSON.stringify(latest) !== JSON.stringify(actual)) {
+                log.info('Data did change :( storing new to dataset.');
+                await dataset.pushData(DATA);
+            }
+
+            await kvStore.setValue(LATEST, DATA);
+            log.info('Data stored, finished.');
         },
 
         // This function is called if the page processing failed more than maxRequestRetries+1 times.
